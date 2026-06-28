@@ -5,6 +5,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -24,6 +25,42 @@ type Props = {
   leads: LeadWithStage[];
   orgSlug: string;
 };
+
+type DroppableColumnProps = {
+  stage: FunnelStage;
+  leads: LeadWithStage[];
+  orgSlug: string;
+};
+
+function DroppableColumn({ stage, leads, orgSlug }: DroppableColumnProps) {
+  const { setNodeRef } = useDroppable({ id: stage.id });
+  return (
+    <div className="flex flex-col gap-2 min-w-[260px] max-w-[260px]">
+      <div className="flex items-center gap-2 mb-1">
+        <span
+          className="w-3 h-3 rounded-full flex-shrink-0"
+          style={{ backgroundColor: stage.color }}
+        />
+        <span className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
+          {stage.name}
+        </span>
+        <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+          {leads.length}
+        </span>
+      </div>
+      <div
+        ref={setNodeRef}
+        className="flex flex-col gap-2 flex-1 min-h-[120px] rounded-lg border-2 border-dashed border-border/50 p-2"
+      >
+        <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+          {leads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} orgSlug={orgSlug} />
+          ))}
+        </SortableContext>
+      </div>
+    </div>
+  );
+}
 
 type PendingMove = {
   leadId: string;
@@ -94,37 +131,16 @@ export function LeadsKanban({ stages, leads, orgSlug }: Props) {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto p-6 flex-1 min-h-0">
           {stages.map((stage) => (
-            <div
+            <DroppableColumn
               key={stage.id}
-              className="flex flex-col gap-2 min-w-[260px] max-w-[260px]"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: stage.color }}
-                />
-                <span className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
-                  {stage.name}
-                </span>
-                <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-                  {leadsByStage[stage.id]?.length ?? 0}
-                </span>
-              </div>
-              <div className="flex flex-col gap-2 flex-1 min-h-[120px] rounded-lg border-2 border-dashed border-border/50 p-2">
-                <SortableContext
-                  items={(leadsByStage[stage.id] ?? []).map((l) => l.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {(leadsByStage[stage.id] ?? []).map((lead) => (
-                    <LeadCard key={lead.id} lead={lead} orgSlug={orgSlug} />
-                  ))}
-                </SortableContext>
-              </div>
-            </div>
+              stage={stage}
+              leads={leadsByStage[stage.id] ?? []}
+              orgSlug={orgSlug}
+            />
           ))}
         </div>
         <DragOverlay>
-          {activeLead ? <LeadCard lead={activeLead} orgSlug={orgSlug} /> : null}
+          {activeLead ? <LeadCard lead={activeLead} orgSlug={orgSlug} isDragOverlay={true} /> : null}
         </DragOverlay>
       </DndContext>
 

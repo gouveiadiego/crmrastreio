@@ -21,27 +21,31 @@ function timeAgo(dateStr: string): string {
 type Props = {
   lead: LeadWithStage;
   orgSlug: string;
+  isDragOverlay?: boolean;
 };
 
-export function LeadCard({ lead, orgSlug }: Props) {
+export function LeadCard({ lead, orgSlug, isDragOverlay = false }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: lead.id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
+  const style = isDragOverlay
+    ? { cursor: "grabbing" as const }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      };
+
+  const sortableProps = isDragOverlay ? {} : { ...attributes, ...listeners };
 
   const displayName = lead.name ?? lead.phone ?? "Lead sem nome";
   const ago = timeAgo(lead.created_at);
 
   return (
     <div
-      ref={setNodeRef}
+      ref={isDragOverlay ? undefined : setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...sortableProps}
       className="rounded-lg border border-border bg-card p-3 shadow-sm cursor-grab active:cursor-grabbing"
     >
       <p className="font-medium text-sm truncate">{displayName}</p>
