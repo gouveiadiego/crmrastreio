@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteStageAction } from "@/lib/leads/stages/actions";
 import type { FunnelStage } from "@/lib/leads/stages/queries";
@@ -56,7 +56,6 @@ export function StagesList({ stages, orgSlug }: Props) {
             key={stage.id}
             className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
           >
-            <GripVerticalIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <span
               className="w-3 h-3 rounded-full flex-shrink-0"
               style={{ backgroundColor: stage.color }}
@@ -96,6 +95,7 @@ export function StagesList({ stages, orgSlug }: Props) {
       </div>
 
       <StageFormDialog
+        key={editStage?.id ?? "new"}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         orgSlug={orgSlug}
