@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { triggerAgent } from "@/lib/agent/trigger";
 import { emitAfter } from "@/lib/automations/emit";
+import { createLeadFromWebhook } from "@/lib/leads/actions";
+import { getFirstStageSystem } from "@/lib/leads/stages/queries";
 import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { ChannelType, MessagingAdapter, NormalizedEvent } from "./adapter";
@@ -286,6 +288,26 @@ export async function processInboundMessage(
             contact: contactInfo,
             org: { id: orgId, name: "", slug: "" },
           },
+        });
+      }
+
+      // Funil de leads: cria card automaticamente na primeira etapa
+      {
+        const orgId = channel.organization_id;
+        const convId = conversationId;
+        const phone = normalizePhone(externalThread);
+        const leadName = incomingDisplayName;
+        after(async () => {
+          const firstStage = await getFirstStageSystem(orgId);
+          if (firstStage) {
+            await createLeadFromWebhook({
+              organizationId: orgId,
+              conversationId: convId,
+              funnel_stage_id: firstStage.id,
+              phone,
+              name: leadName,
+            });
+          }
         });
       }
     } else {
