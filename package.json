@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "deploy": "next build && node .next/standalone/server.js",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --write .",
