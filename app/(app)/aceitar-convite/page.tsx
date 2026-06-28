@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { AcceptForm } from "./accept-form";
 
 type Props = { searchParams: Promise<{ token?: string }> };
@@ -22,14 +23,21 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
 
   const user = await getCurrentUser();
 
-  const supabase = await createClient();
-  const { data: invite } = await supabase
+  // Usa cliente admin pra ler o convite sem exigir sessão do visitante.
+  // Essa página é pública (middleware liberado) e o token é o mecanismo de segurança.
+  const adminDb = createServiceClient();
+  const { data: inviteRow } = await adminDb
     .from("invitations")
-    .select(
-      "email, role, expires_at, accepted_at, organization_id, organization:organizations(name, slug)",
-    )
+    .select("email, role, expires_at, accepted_at, organization_id, organization:organizations(name, slug)")
     .eq("token", token)
     .maybeSingle();
+
+  const invite = inviteRow ?? null;
+  const org = inviteRow
+    ? (inviteRow.organization as unknown as { name: string; slug: string })
+    : null;
+
+  const supabase = await createClient();
 
   if (!invite) {
     return (
@@ -62,7 +70,7 @@ export default async function AcceptInvitePage({ searchParams }: Props) {
     );
   }
 
-  const org = invite.organization as unknown as { name: string; slug: string };
+  if (!org) return null;
 
   if (!user) {
     return (
