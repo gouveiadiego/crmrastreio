@@ -27,7 +27,7 @@ export function LoginForm() {
         toast.error(result.error);
         return;
       }
-      router.push("/onboarding");
+      window.location.href = "/onboarding";
     });
   }
 
