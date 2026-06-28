@@ -22,28 +22,28 @@ interface SendCapiEventOpts {
  * NÃO lança exceção — chamado via after(), nada acima trata.
  */
 export async function sendCapiEvent(opts: SendCapiEventOpts): Promise<void> {
-  const supabase = createServiceClient();
-
-  const { data: integration } = await supabase
-    .from("meta_integrations")
-    .select("pixel_id, capi_token")
-    .eq("organization_id", opts.orgId)
-    .maybeSingle();
-
-  if (!integration) return; // Meta não configurado para esta org
-
-  const payload = buildCapiPayload({
-    eventName: opts.eventName,
-    leadId: opts.leadId,
-    stageId: opts.stageId,
-    phone: opts.phone,
-    name: opts.name,
-    value: opts.value,
-  });
-
-  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${integration.pixel_id}/events`;
-
   try {
+    const supabase = createServiceClient();
+
+    const { data: integration } = await supabase
+      .from("meta_integrations")
+      .select("pixel_id, capi_token")
+      .eq("organization_id", opts.orgId)
+      .maybeSingle();
+
+    if (!integration) return; // Meta não configurado para esta org
+
+    const payload = buildCapiPayload({
+      eventName: opts.eventName,
+      leadId: opts.leadId,
+      stageId: opts.stageId,
+      phone: opts.phone,
+      name: opts.name,
+      value: opts.value,
+    });
+
+    const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${integration.pixel_id}/events`;
+
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,9 +70,6 @@ export async function sendCapiEvent(opts: SendCapiEventOpts): Promise<void> {
       .eq("id", opts.leadId);
   } catch (err) {
     logError("meta-capi.send", err);
-    await supabase
-      .from("leads")
-      .update({ meta_error: "Erro de rede ao contatar Meta" })
-      .eq("id", opts.leadId);
+    // Cannot write meta_error here — may not have a valid supabase client
   }
 }
