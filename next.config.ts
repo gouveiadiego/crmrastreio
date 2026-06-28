@@ -78,7 +78,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: [APP_HOST, ...DEV_ALLOWED_HOSTS],
+      allowedOrigins: [APP_HOST, APP_ORIGIN, ...DEV_ALLOWED_HOSTS],
     },
   },
   async headers() {
