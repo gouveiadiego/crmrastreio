@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -1028,6 +1028,47 @@ export type Database = {
           },
         ]
       }
+      funnel_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          meta_event: string | null
+          name: string
+          organization_id: string
+          position: number
+          requires_value: boolean
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          meta_event?: string | null
+          name: string
+          organization_id: string
+          position?: number
+          requires_value?: boolean
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          meta_event?: string | null
+          name?: string
+          organization_id?: string
+          position?: number
+          requires_value?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_stages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -1065,6 +1106,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          funnel_stage_id: string
+          id: string
+          last_meta_event: string | null
+          meta_error: string | null
+          name: string | null
+          organization_id: string
+          phone: string | null
+          sale_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          funnel_stage_id: string
+          id?: string
+          last_meta_event?: string | null
+          meta_error?: string | null
+          name?: string | null
+          organization_id: string
+          phone?: string | null
+          sale_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          funnel_stage_id?: string
+          id?: string
+          last_meta_event?: string | null
+          meta_error?: string | null
+          name?: string | null
+          organization_id?: string
+          phone?: string | null
+          sale_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_funnel_stage_id_fkey"
+            columns: ["funnel_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1207,6 +1322,38 @@ export type Database = {
             columns: ["reply_to_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_integrations: {
+        Row: {
+          capi_token: string
+          created_at: string
+          organization_id: string
+          pixel_id: string
+          updated_at: string
+        }
+        Insert: {
+          capi_token: string
+          created_at?: string
+          organization_id: string
+          pixel_id: string
+          updated_at?: string
+        }
+        Update: {
+          capi_token?: string
+          created_at?: string
+          organization_id?: string
+          pixel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1541,6 +1688,18 @@ export type Database = {
         }[]
       }
       current_user_email: { Args: never; Returns: string }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          org_name: string
+          org_slug: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+        }[]
+      }
       has_org_role: {
         Args: {
           _org_id: string
