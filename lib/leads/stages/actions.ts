@@ -106,7 +106,11 @@ export async function deleteStageAction(input: DeleteStageInput): Promise<Action
     .eq("organization_id", org.id)
     .maybeSingle();
 
-  if (stage?.is_system) {
+  if (!stage) {
+    return { ok: false, error: "Etapa não encontrada." };
+  }
+
+  if (stage.is_system) {
     return { ok: false, error: "Etapa padrão do sistema — não pode ser excluída." };
   }
 

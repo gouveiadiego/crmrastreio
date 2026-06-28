@@ -13,13 +13,14 @@ export default async function LeadsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgMember({ orgSlug });
 
-  await seedDefaultStageSystem(org.id);
   const [stages, leads] = await Promise.all([
     getStagesByOrg(org.id),
     getLeadsByOrg(org.id),
   ]);
 
+  // Semear etapa padrão apenas se não houver nenhuma
   if (stages.length === 0) {
+    await seedDefaultStageSystem(org.id);
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <h1 className="text-2xl font-semibold">Configure seu funil primeiro</h1>

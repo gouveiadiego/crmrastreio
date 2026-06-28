@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logError } from "@/lib/logger";
 import type { Database } from "@/types/supabase";
 
 export type FunnelStage = Database["public"]["Tables"]["funnel_stages"]["Row"];
@@ -62,7 +63,7 @@ export async function seedDefaultStageSystem(orgId: string): Promise<void> {
     .select("id", { count: "exact", head: true })
     .eq("organization_id", orgId);
   if ((count ?? 0) > 0) return; // Já tem etapas, não faz nada
-  await supabase.from("funnel_stages").insert({
+  const { error } = await supabase.from("funnel_stages").insert({
     organization_id: orgId,
     name: "Não Classificado",
     is_system: true,
@@ -71,4 +72,7 @@ export async function seedDefaultStageSystem(orgId: string): Promise<void> {
     requires_value: false,
     position: 0,
   });
+  if (error) {
+    logError("leads.stages.seed-default", error);
+  }
 }
