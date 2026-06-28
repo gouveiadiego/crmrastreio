@@ -82,10 +82,11 @@ export async function signInAction(input: SignInInput): Promise<ActionResult> {
 
   if (error) {
     await padLatency(startedAt);
-    return {
-      ok: false,
-      error: "Email ou senha incorretos. Se não confirmou o email ainda, cheque sua caixa.",
-    };
+    const lower = error.message.toLowerCase();
+    if (lower.includes("email not confirmed")) {
+      return { ok: false, error: "Confirme seu email antes de entrar. Verifique sua caixa de entrada." };
+    }
+    return { ok: false, error: "Email ou senha incorretos." };
   }
   await padLatency(startedAt);
   return { ok: true };
