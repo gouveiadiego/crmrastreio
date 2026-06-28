@@ -4,6 +4,7 @@ import {
   CableIcon,
   HomeIcon,
   InboxIcon,
+  KanbanIcon,
   LayersIcon,
   ListTodoIcon,
   type LucideIcon,
@@ -60,6 +61,7 @@ export const navItems: NavItem[] = [
   { path: "/contatos", label: "Contatos", icon: UsersIcon, group: "crm" },
   { path: "/empresas", label: "Empresas", icon: BuildingIcon, group: "crm" },
   { path: "/deals", label: "Deals", icon: BriefcaseIcon, group: "crm" },
+  { path: "/leads", label: "Leads", icon: KanbanIcon, group: "crm" },
 
   // automação — features avançadas que admin configura
   {
