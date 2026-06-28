@@ -2,6 +2,7 @@
 
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireOrgMember, requireOrgRole } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -190,5 +191,103 @@ export async function createLeadFromWebhook(opts: {
   // 23505 = unique_violation (conversation já tem lead) — ignorar silenciosamente
   if (error && (error as { code?: string }).code !== "23505") {
     logError("leads.webhook-create", error);
+  }
+}
+
+// ─── Meta CAPI Integration ────────────────────────────────────────────────────
+
+const saveMetaIntegrationSchema = z.object({
+  orgSlug: z.string(),
+  pixel_id: z.string().min(1),
+  capi_token: z.string().min(1),
+});
+
+const testMetaIntegrationSchema = z.object({
+  orgSlug: z.string(),
+});
+
+export async function saveMetaIntegrationAction(
+  input: z.infer<typeof saveMetaIntegrationSchema>,
+): Promise<ActionResult> {
+  const parsed = saveMetaIntegrationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+
+  const { org } = await requireOrgRole({
+    orgSlug: parsed.data.orgSlug,
+    roles: ["owner", "admin"],
+  });
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("meta_integrations")
+    .upsert(
+      {
+        organization_id: org.id,
+        pixel_id: parsed.data.pixel_id,
+        capi_token: parsed.data.capi_token,
+      },
+      { onConflict: "organization_id" },
+    );
+
+  if (error) {
+    logError("meta-integration.save", error);
+    return { ok: false, error: "Erro ao salvar configuração. Tente novamente." };
+  }
+
+  revalidatePath(`/app/${parsed.data.orgSlug}/settings/integrations`);
+  return { ok: true };
+}
+
+export async function testMetaIntegrationAction(
+  input: z.infer<typeof testMetaIntegrationSchema>,
+): Promise<ActionResult<{ message: string }>> {
+  const parsed = testMetaIntegrationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+
+  const { org } = await requireOrgRole({
+    orgSlug: parsed.data.orgSlug,
+    roles: ["owner", "admin"],
+  });
+
+  // Busca credenciais via service client — não serializa capi_token pro browser
+  const supabase = createServiceClient();
+  const { data: integration } = await supabase
+    .from("meta_integrations")
+    .select("pixel_id, capi_token")
+    .eq("organization_id", org.id)
+    .maybeSingle();
+
+  if (!integration) {
+    return { ok: false, error: "Configure Pixel ID e Token antes de testar." };
+  }
+
+  const META_GRAPH_VERSION = "v19.0";
+  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${integration.pixel_id}/events`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: [
+          {
+            event_name: "LeadTest",
+            event_time: Math.floor(Date.now() / 1000),
+            event_id: `test_${Date.now()}`,
+            action_source: "system_generated",
+            user_data: {},
+          },
+        ],
+        access_token: integration.capi_token,
+      }),
+    });
+
+    if (!res.ok) {
+      return { ok: false, error: `Meta retornou erro: ${res.status}` };
+    }
+
+    return { ok: true, data: { message: "Conexão com Meta confirmada!" } };
+  } catch {
+    return { ok: false, error: "Não foi possível conectar ao Meta. Verifique o Token." };
   }
 }
