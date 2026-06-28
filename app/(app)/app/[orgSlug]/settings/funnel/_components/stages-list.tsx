@@ -75,16 +75,21 @@ export function StagesList({ stages, orgSlug }: Props) {
             >
               <PencilIcon className="w-4 h-4" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={`Excluir etapa ${stage.name}`}
-              className="text-destructive hover:text-destructive"
-              onClick={() => handleDelete(stage)}
-              disabled={isPending}
-            >
-              <Trash2Icon className="w-4 h-4" />
-            </Button>
+            {!stage.is_system && (
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Excluir etapa ${stage.name}`}
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDelete(stage)}
+                disabled={isPending}
+              >
+                <Trash2Icon className="w-4 h-4" />
+              </Button>
+            )}
+            {stage.is_system && (
+              <span className="text-xs text-muted-foreground px-2">padrão</span>
+            )}
           </div>
         ))}
 

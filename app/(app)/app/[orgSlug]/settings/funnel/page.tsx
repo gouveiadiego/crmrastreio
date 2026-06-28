@@ -1,5 +1,5 @@
 import { requireOrgRole } from "@/lib/auth/guards";
-import { getStagesByOrg } from "@/lib/leads/stages/queries";
+import { getStagesByOrg, seedDefaultStageSystem } from "@/lib/leads/stages/queries";
 import { StagesList } from "./_components/stages-list";
 
 type Props = { params: Promise<{ orgSlug: string }> };
@@ -9,7 +9,11 @@ export const metadata = { title: "Funil de Leads" };
 export default async function FunnelSettingsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgRole({ orgSlug, roles: ["owner", "admin"] });
-  const stages = await getStagesByOrg(org.id);
+  let stages = await getStagesByOrg(org.id);
+  if (stages.length === 0) {
+    await seedDefaultStageSystem(org.id);
+    stages = await getStagesByOrg(org.id);
+  }
 
   return (
     <div className="space-y-8">

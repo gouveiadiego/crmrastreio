@@ -9,7 +9,7 @@ export async function getStagesByOrg(orgId: string): Promise<FunnelStage[]> {
   const { data, error } = await supabase
     .from("funnel_stages")
     .select(
-      "id, organization_id, name, meta_event, color, position, requires_value, created_at",
+      "id, organization_id, name, meta_event, color, position, requires_value, is_system, created_at",
     )
     .eq("organization_id", orgId)
     .order("position", { ascending: true });
@@ -22,7 +22,7 @@ export async function getFirstStage(orgId: string): Promise<FunnelStage | null> 
   const { data, error } = await supabase
     .from("funnel_stages")
     .select(
-      "id, organization_id, name, meta_event, color, position, requires_value, created_at",
+      "id, organization_id, name, meta_event, color, position, requires_value, is_system, created_at",
     )
     .eq("organization_id", orgId)
     .order("position", { ascending: true })
@@ -43,7 +43,7 @@ export async function getFirstStageSystem(
   const { data, error } = await supabase
     .from("funnel_stages")
     .select(
-      "id, organization_id, name, meta_event, color, position, requires_value, created_at",
+      "id, organization_id, name, meta_event, color, position, requires_value, is_system, created_at",
     )
     .eq("organization_id", orgId)
     .order("position", { ascending: true })
@@ -51,4 +51,24 @@ export async function getFirstStageSystem(
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/** Cria a etapa padrão "Não Classificado" se a org ainda não tiver nenhuma etapa. */
+export async function seedDefaultStageSystem(orgId: string): Promise<void> {
+  const supabase = createServiceClient();
+  // Verifica se já existe alguma etapa
+  const { count } = await supabase
+    .from("funnel_stages")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId);
+  if ((count ?? 0) > 0) return; // Já tem etapas, não faz nada
+  await supabase.from("funnel_stages").insert({
+    organization_id: orgId,
+    name: "Não Classificado",
+    is_system: true,
+    color: "#6b7280",
+    meta_event: "Lead",
+    requires_value: false,
+    position: 0,
+  });
 }

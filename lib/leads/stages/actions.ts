@@ -98,6 +98,18 @@ export async function deleteStageAction(input: DeleteStageInput): Promise<Action
   const { org } = await requireOrgRole({ orgSlug: parsed.data.orgSlug, roles: ["owner", "admin"] });
   const supabase = await createClient();
 
+  // Bloqueia exclusão de etapa de sistema
+  const { data: stage } = await supabase
+    .from("funnel_stages")
+    .select("is_system")
+    .eq("id", parsed.data.stageId)
+    .eq("organization_id", org.id)
+    .maybeSingle();
+
+  if (stage?.is_system) {
+    return { ok: false, error: "Etapa padrão do sistema — não pode ser excluída." };
+  }
+
   // Bloqueia se há leads nessa etapa
   const { count } = await supabase
     .from("leads")

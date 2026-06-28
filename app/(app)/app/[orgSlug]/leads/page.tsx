@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { requireOrgMember } from "@/lib/auth/guards";
 import { getLeadsByOrg } from "@/lib/leads/queries";
-import { getStagesByOrg } from "@/lib/leads/stages/queries";
+import { getStagesByOrg, seedDefaultStageSystem } from "@/lib/leads/stages/queries";
 import { LeadsKanban } from "./_components/leads-kanban";
 
 type Props = { params: Promise<{ orgSlug: string }> };
@@ -13,6 +13,7 @@ export default async function LeadsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgMember({ orgSlug });
 
+  await seedDefaultStageSystem(org.id);
   const [stages, leads] = await Promise.all([
     getStagesByOrg(org.id),
     getLeadsByOrg(org.id),
