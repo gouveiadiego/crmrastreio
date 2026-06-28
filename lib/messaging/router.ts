@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { triggerAgent } from "@/lib/agent/trigger";
 import { emitAfter } from "@/lib/automations/emit";
 import { createLeadFromWebhook } from "@/lib/leads/actions";
-import { getFirstStageSystem } from "@/lib/leads/stages/queries";
+import { getFirstStageSystem, seedDefaultStageSystem } from "@/lib/leads/stages/queries";
 import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { ChannelType, MessagingAdapter, NormalizedEvent } from "./adapter";
@@ -298,6 +298,7 @@ export async function processInboundMessage(
         const phone = normalizePhone(externalThread);
         const leadName = incomingDisplayName;
         after(async () => {
+          await seedDefaultStageSystem(orgId); // garante que a etapa existe antes de buscar
           const firstStage = await getFirstStageSystem(orgId);
           if (firstStage) {
             await createLeadFromWebhook({

@@ -261,7 +261,7 @@ export async function testMetaIntegrationAction(
     return { ok: false, error: "Configure Pixel ID e Token antes de testar." };
   }
 
-  const META_GRAPH_VERSION = "v19.0";
+  const META_GRAPH_VERSION = "v22.0";
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${integration.pixel_id}/events`;
 
   try {

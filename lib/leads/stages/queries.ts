@@ -54,15 +54,12 @@ export async function getFirstStageSystem(
   return data;
 }
 
-/** Cria a etapa padrão "Não Classificado" se a org ainda não tiver nenhuma etapa. */
+/** Cria a etapa padrão "Não Classificado" se a org ainda não tiver nenhuma etapa de sistema.
+ *  Idempotente: o índice único parcial (is_system = true) garante que acessos simultâneos
+ *  não criem duplicatas — o segundo insert recebe 23505 e é ignorado silenciosamente.
+ */
 export async function seedDefaultStageSystem(orgId: string): Promise<void> {
   const supabase = createServiceClient();
-  // Verifica se já existe alguma etapa
-  const { count } = await supabase
-    .from("funnel_stages")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", orgId);
-  if ((count ?? 0) > 0) return; // Já tem etapas, não faz nada
   const { error } = await supabase.from("funnel_stages").insert({
     organization_id: orgId,
     name: "Não Classificado",
@@ -72,7 +69,8 @@ export async function seedDefaultStageSystem(orgId: string): Promise<void> {
     requires_value: false,
     position: 0,
   });
-  if (error) {
+  // 23505 = unique_violation → já existe, tudo certo
+  if (error && (error as { code?: string }).code !== "23505") {
     logError("leads.stages.seed-default", error);
   }
 }

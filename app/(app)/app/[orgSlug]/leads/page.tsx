@@ -13,7 +13,7 @@ export default async function LeadsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgMember({ orgSlug });
 
-  const [stages, leads] = await Promise.all([
+  let [stages, leads] = await Promise.all([
     getStagesByOrg(org.id),
     getLeadsByOrg(org.id),
   ]);
@@ -21,6 +21,10 @@ export default async function LeadsPage({ params }: Props) {
   // Semear etapa padrão apenas se não houver nenhuma
   if (stages.length === 0) {
     await seedDefaultStageSystem(org.id);
+    stages = await getStagesByOrg(org.id); // rebusca após seed para não exibir empty state indevido
+  }
+
+  if (stages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <h1 className="text-2xl font-semibold">Configure seu funil primeiro</h1>

@@ -2,7 +2,7 @@ import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buildCapiPayload } from "./events";
 
-const META_GRAPH_VERSION = "v19.0";
+const META_GRAPH_VERSION = "v22.0";
 
 interface SendCapiEventOpts {
   orgId: string;
@@ -22,8 +22,9 @@ interface SendCapiEventOpts {
  * NÃO lança exceção — chamado via after(), nada acima trata.
  */
 export async function sendCapiEvent(opts: SendCapiEventOpts): Promise<void> {
+  let supabase: ReturnType<typeof createServiceClient> | null = null;
   try {
-    const supabase = createServiceClient();
+    supabase = createServiceClient();
 
     const { data: integration } = await supabase
       .from("meta_integrations")
@@ -70,6 +71,16 @@ export async function sendCapiEvent(opts: SendCapiEventOpts): Promise<void> {
       .eq("id", opts.leadId);
   } catch (err) {
     logError("meta-capi.send", err);
-    // Cannot write meta_error here — may not have a valid supabase client
+    // Grava o erro no card se o cliente já estava disponível
+    if (supabase && opts.leadId) {
+      try {
+        await supabase
+          .from("leads")
+          .update({ meta_error: "Erro interno ao enviar evento" })
+          .eq("id", opts.leadId);
+      } catch {
+        // ignora — não podemos fazer nada mais aqui
+      }
+    }
   }
 }
