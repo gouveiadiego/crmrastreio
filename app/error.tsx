@@ -16,12 +16,18 @@ export default function GlobalError({
         Tente novamente. Se o problema continuar, cole o erro abaixo pro Claude Code e descreva o
         que tava fazendo.
       </p>
-      {(error.message || error.digest) && (
-        <pre className="max-w-lg overflow-auto rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
-          {error.digest && <span className="block font-bold">digest: {error.digest}</span>}
-          {error.message && <span className="block">{error.message}</span>}
-        </pre>
-      )}
+      <pre className="max-w-lg overflow-auto rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
+        {error.digest && <span className="block font-bold">digest: {error.digest}</span>}
+        <span className="block">{error.message || "(sem mensagem)"}</span>
+        {error.stack && (
+          <span className="mt-2 block whitespace-pre-wrap opacity-60">{error.stack}</span>
+        )}
+        {(error as unknown as { cause?: unknown }).cause !== undefined && (
+          <span className="mt-2 block whitespace-pre-wrap opacity-60">
+            cause: {String((error as unknown as { cause?: unknown }).cause)}
+          </span>
+        )}
+      </pre>
       <Button onClick={reset}>Tentar novamente</Button>
     </div>
   );
