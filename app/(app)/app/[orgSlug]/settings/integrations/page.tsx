@@ -1,5 +1,5 @@
 import { requireOrgRole } from "@/lib/auth/guards";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { MetaIntegrationForm } from "./_components/meta-integration-form";
 
 export const metadata = { title: "Integrações" };
@@ -10,8 +10,9 @@ export default async function IntegrationsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgRole({ orgSlug, roles: ["owner", "admin"] });
 
-  // createClient usa a sessão do usuário (já confirmado admin por requireOrgRole)
-  const supabase = await createClient();
+  // Service client: authorization já verificada por requireOrgRole;
+  // consistente com testMetaIntegrationAction que também usa service client pra ler esta tabela
+  const supabase = createServiceClient();
   const { data: integration } = await supabase
     .from("meta_integrations")
     .select("pixel_id")

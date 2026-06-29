@@ -308,6 +308,11 @@ export async function processInboundMessage(
               phone,
               name: leadName,
             });
+          } else {
+            logError(
+              "leads.webhook.no-system-stage",
+              new Error(`Org ${orgId}: sistema de etapas indisponível — lead não criado para conversa ${convId}`),
+            );
           }
         });
       }

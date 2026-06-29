@@ -8,6 +8,7 @@ import { logError } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { META_GRAPH_VERSION, sendCapiEvent } from "@/lib/meta-capi/client";
+import { CAPI_EVENT_NAMES } from "@/lib/meta-capi/events";
 import { hashPhone } from "@/lib/meta-capi/hash";
 import type { TablesUpdate } from "@/types/supabase";
 import {
@@ -103,8 +104,11 @@ export async function moveLeadAction(input: MoveLeadInput): Promise<ActionResult
 
   revalidatePath(`/app/${parsed.data.orgSlug}/leads`);
 
-  // Dispara evento CAPI em background — não bloqueia a resposta
-  if (stage.meta_event) {
+  // Dispara evento CAPI em background — só para eventos válidos do enum
+  const isValidCapiEvent = (v: string | null): v is (typeof CAPI_EVENT_NAMES)[number] =>
+    CAPI_EVENT_NAMES.includes(v as (typeof CAPI_EVENT_NAMES)[number]);
+
+  if (stage.meta_event && isValidCapiEvent(stage.meta_event)) {
     const orgId = org.id;
     const leadId = parsed.data.leadId;
     const stageId = parsed.data.newStageId;

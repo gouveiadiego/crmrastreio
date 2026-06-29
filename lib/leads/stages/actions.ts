@@ -70,13 +70,17 @@ export async function updateStageAction(input: UpdateStageInput): Promise<Action
   const supabase = await createClient();
 
   // Bloqueia edição de etapa de sistema
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("funnel_stages")
     .select("is_system")
     .eq("id", parsed.data.stageId)
     .eq("organization_id", org.id)
     .maybeSingle();
 
+  if (existingError) {
+    logError("leads.stages.update.preflight", existingError);
+    return { ok: false, error: "Erro ao verificar etapa. Tente novamente." };
+  }
   if (!existing) return { ok: false, error: "Etapa não encontrada." };
   if (existing.is_system) return { ok: false, error: "Etapa padrão do sistema — não pode ser editada." };
 
