@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2Icon, Loader2Icon, ShieldAlertIcon } from "lucide-react";
+import { CheckCircle2Icon, CopyIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -30,6 +30,8 @@ type Step = 1 | 2 | 3;
 type ConnectedChannel = {
   channelId: string;
   displayName: string;
+  qrUrl: string;
+  alreadyConnected: boolean;
 };
 
 export function ConnectEvolutionDialog({
@@ -50,6 +52,7 @@ export function ConnectEvolutionDialog({
   const [displayName, setDisplayName] = useState("");
   const [pending, start] = useTransition();
   const [connected, setConnected] = useState<ConnectedChannel | null>(null);
+  const [copied, setCopied] = useState(false);
 
   function reset() {
     setStep(1);
@@ -59,6 +62,18 @@ export function ConnectEvolutionDialog({
     setInstanceName("");
     setDisplayName("");
     setConnected(null);
+    setCopied(false);
+  }
+
+  async function copyQrLink() {
+    if (!connected) return;
+    try {
+      await navigator.clipboard.writeText(connected.qrUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast.info(`Link: ${connected.qrUrl}`);
+    }
   }
 
   function handleOpenChange(next: boolean) {
@@ -86,12 +101,13 @@ export function ConnectEvolutionDialog({
         return;
       }
       const id = r.data?.channelId;
-      if (!id) {
-        toast.error("Canal conectado, mas o ID não veio. Recarregue a página.");
+      const qrUrl = r.data?.qrUrl;
+      if (!id || !qrUrl) {
+        toast.error("Canal salvo, mas algo deu errado. Recarregue a página.");
         return;
       }
-      toast.success("Canal conectado!");
-      setConnected({ channelId: id, displayName: displayName.trim() });
+      toast.success("Canal configurado!");
+      setConnected({ channelId: id, displayName: displayName.trim(), qrUrl, alreadyConnected: false });
       setStep(3);
     });
   }
@@ -160,21 +176,12 @@ export function ConnectEvolutionDialog({
             className="space-y-4"
           >
             <div className="space-y-1 rounded-md border border-border/60 bg-muted/30 p-3 text-xs">
-              <p className="font-medium text-foreground">Pré-requisitos</p>
+              <p className="font-medium text-foreground">Pré-requisito</p>
               <ul className="list-inside list-disc space-y-0.5 text-muted-foreground">
-                <li>Evolution API rodando em um servidor</li>
-                <li>Instância criada e QR escaneado (estado &quot;open&quot;)</li>
+                <li>Evolution API rodando em um servidor com HTTPS</li>
               </ul>
               <p className="text-muted-foreground">
-                Docs:{" "}
-                <a
-                  href="https://doc.evolution-api.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  doc.evolution-api.com
-                </a>
+                O sistema cria a instância e gera o link de QR automaticamente.
               </p>
             </div>
 
@@ -217,7 +224,9 @@ export function ConnectEvolutionDialog({
                 required
                 maxLength={80}
               />
-              <p className="text-xs text-muted-foreground">O nome exato como criou no Evolution.</p>
+              <p className="text-xs text-muted-foreground">
+                Só letras, números e hífen. Se ainda não existir, o sistema cria automaticamente.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -240,21 +249,37 @@ export function ConnectEvolutionDialog({
             <div className="flex items-start gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
               <CheckCircle2Icon className="mt-0.5 h-4 w-4 flex-none text-emerald-600" />
               <div className="space-y-1 text-sm">
-                <p className="font-medium">Canal conectado!</p>
-                <p className="text-muted-foreground">{connected.displayName}</p>
+                <p className="font-medium">Instância criada! Agora é só o cliente escanear.</p>
                 <p className="text-xs text-muted-foreground">
-                  Webhook configurado automaticamente no Evolution.
+                  Copie o link abaixo e mande pro cliente. O QR atualiza automaticamente, então
+                  pode mandar quando quiser — o link dura 1 hora.
                 </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Próximos passos:</p>
-              <ol className="list-inside list-decimal space-y-1 text-xs text-muted-foreground">
-                <li>Mande uma mensagem pro número conectado pra testar</li>
-                <li>Configure um agente IA pra responder (opcional)</li>
-                <li>Acompanhe as conversas pela inbox</li>
-              </ol>
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">Link para o cliente escanear o QR:</p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={connected.qrUrl}
+                  className="min-w-0 flex-1 truncate rounded-md border border-border bg-muted/30 px-3 py-1.5 font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  variant={copied ? "default" : "outline"}
+                  size="sm"
+                  onClick={copyQrLink}
+                  className="shrink-0 gap-1.5"
+                >
+                  <CopyIcon className="h-3.5 w-3.5" />
+                  {copied ? "Copiado!" : "Copiar"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O cliente abre o link no celular → WhatsApp → Dispositivos vinculados →
+                escaneia. Quando conectar, o status vira &quot;connected&quot; aqui.
+              </p>
             </div>
           </div>
         )}
@@ -277,7 +302,7 @@ export function ConnectEvolutionDialog({
               </Button>
               <Button type="submit" form="evolution-credentials-form" disabled={pending}>
                 {pending && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
-                Verificar e conectar
+                {pending ? "Criando instância..." : "Criar e gerar link de QR"}
               </Button>
             </>
           )}

@@ -62,7 +62,7 @@ async function setWebhook(
 
 export async function connectEvolutionChannelAction(
   input: ConnectEvolutionInput,
-): Promise<Result<{ channelId: string }>> {
+): Promise<Result<{ channelId: string; qrUrl: string }>> {
   const parsed = connectEvolutionInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
@@ -73,24 +73,32 @@ export async function connectEvolutionChannelAction(
   });
   const { baseUrl, apiKey, instanceName, displayName } = parsed.data;
 
-  let state: string;
-  let ownerJid: string | null;
+  // Tenta buscar o estado da instância. Se não existir, cria automaticamente.
+  let ownerJid: string | null = null;
+  let initialStatus: "connected" | "pending" = "pending";
   try {
     const r = await fetchInstanceState(baseUrl, apiKey, instanceName);
-    state = r.state;
-    ownerJid = r.ownerJid;
-  } catch (err) {
-    logError("evolution.connect.state", err);
-    return { ok: false, error: err instanceof Error ? err.message : "Não foi possível contatar o Evolution." };
-  }
-  if (state !== "open") {
-    return {
-      ok: false,
-      error:
-        "Instância existe mas não está conectada (estado: " +
-        state +
-        "). Volte no Evolution e escaneie o QR code primeiro.",
-    };
+    if (r.state === "open") {
+      ownerJid = r.ownerJid;
+      initialStatus = "connected";
+    }
+  } catch {
+    // Instância não existe → cria no Evolution agora.
+    try {
+      await postJson(`${baseUrl}/instance/create`, apiKey, {
+        instanceName,
+        integration: "WHATSAPP-BAILEYS",
+      });
+    } catch (createErr) {
+      logError("evolution.connect.create", createErr);
+      return {
+        ok: false,
+        error:
+          createErr instanceof Error
+            ? createErr.message
+            : "Não foi possível criar a instância no Evolution. Verifique URL e API key.",
+      };
+    }
   }
 
   const webhookSecret = crypto.randomBytes(32).toString("hex");
@@ -109,7 +117,7 @@ export async function connectEvolutionChannelAction(
       organization_id: org.id,
       type: "whatsapp_evolution",
       name: displayName,
-      status: "connected",
+      status: initialStatus,
       external_id: instanceName,
       created_by: user.id,
       config: {
@@ -127,8 +135,11 @@ export async function connectEvolutionChannelAction(
     return { ok: false, error: "Não foi possível salvar o canal." };
   }
 
+  const qrToken = signQrToken(data.id);
+  const qrUrl = `${appUrl()}/connect/qr/${qrToken}`;
+
   revalidatePath(`/app/${parsed.data.orgSlug}/settings/channels`);
-  return { ok: true, data: { channelId: data.id } };
+  return { ok: true, data: { channelId: data.id, qrUrl } };
 }
 
 export async function reverifyEvolutionChannelAction(

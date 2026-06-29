@@ -96,8 +96,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
       const { handleConnectionUpdate } = await import(
         "@/lib/messaging/adapters/whatsapp-evolution/connection-update"
       );
-      const data = (payload as { instance?: string; data?: { state?: string } }) ?? {};
-      after(() => handleConnectionUpdate(data.instance ?? "", data.data?.state ?? "unknown"));
+      const data = (payload as {
+        instance?: string;
+        data?: { state?: string; wuid?: string; me?: { id?: string } };
+      }) ?? {};
+      const ownerJid = data.data?.wuid ?? data.data?.me?.id ?? null;
+      after(() =>
+        handleConnectionUpdate(data.instance ?? "", data.data?.state ?? "unknown", ownerJid),
+      );
       return NextResponse.json({ ok: true }, { status: 200 });
     }
   }
