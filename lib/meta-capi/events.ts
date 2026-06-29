@@ -1,12 +1,15 @@
 import { hashField, hashPhone } from "./hash";
 
-export type CapiEventName =
-  | "Lead"
-  | "CompleteRegistration"
-  | "Schedule"
-  | "InitiateCheckout"
-  | "Purchase"
-  | "LeadLost";
+export const CAPI_EVENT_NAMES = [
+  "Lead",
+  "CompleteRegistration",
+  "Schedule",
+  "InitiateCheckout",
+  "Purchase",
+  "LeadLost",
+] as const;
+
+export type CapiEventName = (typeof CAPI_EVENT_NAMES)[number];
 
 interface BuildCapiPayloadOpts {
   eventName: string;

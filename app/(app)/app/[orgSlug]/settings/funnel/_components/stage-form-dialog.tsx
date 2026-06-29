@@ -14,16 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createStageAction, updateStageAction } from "@/lib/leads/stages/actions";
 import type { FunnelStage } from "@/lib/leads/stages/queries";
-import type { CapiEventName } from "@/lib/meta-capi/events";
+import { CAPI_EVENT_NAMES, type CapiEventName } from "@/lib/meta-capi/events";
 
-const META_EVENTS = [
-  { value: "Lead", label: "Lead" },
-  { value: "CompleteRegistration", label: "CompleteRegistration" },
-  { value: "Schedule", label: "Schedule" },
-  { value: "InitiateCheckout", label: "InitiateCheckout" },
-  { value: "Purchase", label: "Purchase (pede valor de venda)" },
-  { value: "LeadLost", label: "LeadLost (custom)" },
-];
+const META_EVENT_LABELS: Record<string, string> = {
+  Lead: "Lead",
+  CompleteRegistration: "CompleteRegistration",
+  Schedule: "Schedule",
+  InitiateCheckout: "InitiateCheckout",
+  Purchase: "Purchase (pede valor de venda)",
+  LeadLost: "LeadLost (custom)",
+};
 
 const COLORS = [
   "#6b7280",
@@ -133,9 +133,9 @@ export function StageFormDialog({ open, onClose, orgSlug, stage }: Props) {
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
             >
               <option value="">Sem evento (só mover)</option>
-              {META_EVENTS.map((ev) => (
-                <option key={ev.value} value={ev.value}>
-                  {ev.label}
+              {CAPI_EVENT_NAMES.map((eventName) => (
+                <option key={eventName} value={eventName}>
+                  {META_EVENT_LABELS[eventName]}
                 </option>
               ))}
             </select>

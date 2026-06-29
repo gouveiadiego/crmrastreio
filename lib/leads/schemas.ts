@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CAPI_EVENT_NAMES } from "@/lib/meta-capi/events";
 
 export const createLeadSchema = z.object({
   orgSlug: z.string(),
@@ -39,7 +40,7 @@ export const createStageSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default("#6b7280"),
-  meta_event: z.enum(["Lead", "CompleteRegistration", "Schedule", "InitiateCheckout", "Purchase", "LeadLost"]).nullable().optional(),
+  meta_event: z.enum(CAPI_EVENT_NAMES).nullable().optional(),
   requires_value: z.boolean().default(false),
 });
 export type CreateStageInput = z.infer<typeof createStageSchema>;
@@ -52,7 +53,7 @@ export const updateStageSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  meta_event: z.enum(["Lead", "CompleteRegistration", "Schedule", "InitiateCheckout", "Purchase", "LeadLost"]).nullable().optional(),
+  meta_event: z.enum(CAPI_EVENT_NAMES).nullable().optional(),
   requires_value: z.boolean().optional(),
 });
 export type UpdateStageInput = z.infer<typeof updateStageSchema>;
