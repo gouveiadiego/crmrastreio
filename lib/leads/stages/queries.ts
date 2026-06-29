@@ -36,6 +36,7 @@ export async function getFirstStage(orgId: string): Promise<FunnelStage | null> 
 /**
  * Versão sem sessão de usuário — usa service client.
  * Chamada pelo router de mensagens (contexto de webhook).
+ * Filtra por is_system=true para não retornar etapa errada após reordenação.
  */
 export async function getFirstStageSystem(
   orgId: string,
@@ -47,10 +48,13 @@ export async function getFirstStageSystem(
       "id, organization_id, name, meta_event, color, position, requires_value, is_system, created_at",
     )
     .eq("organization_id", orgId)
-    .order("position", { ascending: true })
+    .eq("is_system", true)
     .limit(1)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    logError("leads.stages.first-system", error);
+    return null;
+  }
   return data;
 }
 
@@ -59,18 +63,22 @@ export async function getFirstStageSystem(
  *  não criem duplicatas — o segundo insert recebe 23505 e é ignorado silenciosamente.
  */
 export async function seedDefaultStageSystem(orgId: string): Promise<void> {
-  const supabase = createServiceClient();
-  const { error } = await supabase.from("funnel_stages").insert({
-    organization_id: orgId,
-    name: "Não Classificado",
-    is_system: true,
-    color: "#6b7280",
-    meta_event: "Lead",
-    requires_value: false,
-    position: 0,
-  });
-  // 23505 = unique_violation → já existe, tudo certo
-  if (error && (error as { code?: string }).code !== "23505") {
-    logError("leads.stages.seed-default", error);
+  try {
+    const supabase = createServiceClient();
+    const { error } = await supabase.from("funnel_stages").insert({
+      organization_id: orgId,
+      name: "Não Classificado",
+      is_system: true,
+      color: "#6b7280",
+      meta_event: "Lead",
+      requires_value: false,
+      position: 0,
+    });
+    // 23505 = unique_violation → já existe, tudo certo
+    if (error && (error as { code?: string }).code !== "23505") {
+      logError("leads.stages.seed-default", error);
+    }
+  } catch (err) {
+    logError("leads.stages.seed-default", err);
   }
 }

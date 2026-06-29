@@ -69,6 +69,17 @@ export async function updateStageAction(input: UpdateStageInput): Promise<Action
   const { org } = await requireOrgRole({ orgSlug: parsed.data.orgSlug, roles: ["owner", "admin"] });
   const supabase = await createClient();
 
+  // Bloqueia edição de etapa de sistema
+  const { data: existing } = await supabase
+    .from("funnel_stages")
+    .select("is_system")
+    .eq("id", parsed.data.stageId)
+    .eq("organization_id", org.id)
+    .maybeSingle();
+
+  if (!existing) return { ok: false, error: "Etapa não encontrada." };
+  if (existing.is_system) return { ok: false, error: "Etapa padrão do sistema — não pode ser editada." };
+
   const patch: TablesUpdate<"funnel_stages"> = {};
   if (parsed.data.name !== undefined) patch.name = parsed.data.name;
   if (parsed.data.color !== undefined) patch.color = parsed.data.color;
@@ -115,13 +126,18 @@ export async function deleteStageAction(input: DeleteStageInput): Promise<Action
   }
 
   // Bloqueia se há leads nessa etapa
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("leads")
     .select("id", { count: "exact", head: true })
     .eq("funnel_stage_id", parsed.data.stageId)
     .eq("organization_id", org.id);
 
-  if (count && count > 0) {
+  if (countError) {
+    logError("leads.stages.count", countError);
+    return { ok: false, error: "Erro ao verificar leads. Tente novamente." };
+  }
+
+  if ((count ?? 0) > 0) {
     return {
       ok: false,
       error: `Essa etapa tem ${count} lead(s). Mova-os antes de excluir.`,
@@ -151,13 +167,14 @@ export async function reorderStagesAction(input: ReorderStagesInput): Promise<Ac
   const { org } = await requireOrgRole({ orgSlug: parsed.data.orgSlug, roles: ["owner", "admin"] });
   const supabase = await createClient();
 
-  // Atualiza position de cada etapa em paralelo
+  // Atualiza position de cada etapa em paralelo — exclui etapas de sistema
   const updates = parsed.data.stages.map(({ id, position }) =>
     supabase
       .from("funnel_stages")
       .update({ position })
       .eq("id", id)
-      .eq("organization_id", org.id),
+      .eq("organization_id", org.id)
+      .eq("is_system", false),
   );
 
   const results = await Promise.all(updates);

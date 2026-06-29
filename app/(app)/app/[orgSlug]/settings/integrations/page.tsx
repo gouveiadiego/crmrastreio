@@ -1,5 +1,5 @@
 import { requireOrgRole } from "@/lib/auth/guards";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { MetaIntegrationForm } from "./_components/meta-integration-form";
 
 export const metadata = { title: "Integrações" };
@@ -10,8 +10,8 @@ export default async function IntegrationsPage({ params }: Props) {
   const { orgSlug } = await params;
   const { org } = await requireOrgRole({ orgSlug, roles: ["owner", "admin"] });
 
-  // Service client: lê pixel_id sem expor capi_token ao browser
-  const supabase = createServiceClient();
+  // createClient usa a sessão do usuário (já confirmado admin por requireOrgRole)
+  const supabase = await createClient();
   const { data: integration } = await supabase
     .from("meta_integrations")
     .select("pixel_id")

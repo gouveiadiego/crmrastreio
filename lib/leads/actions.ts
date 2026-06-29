@@ -91,6 +91,7 @@ export async function moveLeadAction(input: MoveLeadInput): Promise<ActionResult
     .update({
       funnel_stage_id: parsed.data.newStageId,
       sale_value: parsed.data.saleValue ?? null,
+      meta_error: null,
     })
     .eq("id", parsed.data.leadId)
     .eq("organization_id", org.id);
@@ -191,7 +192,9 @@ export async function saveMetaIntegrationAction(
     orgSlug: parsed.data.orgSlug,
     roles: ["owner", "admin"],
   });
-  const supabase = await createClient();
+  // Service client: authorization já verificada por requireOrgRole acima;
+  // garante que o upsert não é silenciosamente descartado por RLS
+  const supabase = createServiceClient();
 
   const { error } = await supabase
     .from("meta_integrations")

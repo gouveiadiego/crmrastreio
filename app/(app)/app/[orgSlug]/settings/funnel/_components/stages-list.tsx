@@ -67,14 +67,16 @@ export function StagesList({ stages, orgSlug }: Props) {
                 {stage.requires_value && " 💰"}
               </span>
             )}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={`Editar etapa ${stage.name}`}
-              onClick={() => openEdit(stage)}
-            >
-              <PencilIcon className="w-4 h-4" />
-            </Button>
+            {!stage.is_system && (
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Editar etapa ${stage.name}`}
+                onClick={() => openEdit(stage)}
+              >
+                <PencilIcon className="w-4 h-4" />
+              </Button>
+            )}
             {!stage.is_system && (
               <Button
                 size="icon"

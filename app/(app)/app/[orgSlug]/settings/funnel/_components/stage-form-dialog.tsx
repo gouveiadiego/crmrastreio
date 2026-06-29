@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +48,15 @@ export function StageFormDialog({ open, onClose, orgSlug, stage }: Props) {
   const [name, setName] = useState(stage?.name ?? "");
   const [color, setColor] = useState(stage?.color ?? "#6b7280");
   const [metaEvent, setMetaEvent] = useState<CapiEventName | "">((stage?.meta_event as CapiEventName | null) ?? "");
+
+  // Reseta estado ao abrir — evita que edições canceladas persistam ao reabrir o mesmo stage
+  useEffect(() => {
+    if (open) {
+      setName(stage?.name ?? "");
+      setColor(stage?.color ?? "#6b7280");
+      setMetaEvent((stage?.meta_event as CapiEventName | null) ?? "");
+    }
+  }, [open, stage?.id]);
 
   const isEdit = !!stage;
 

@@ -53,7 +53,9 @@ export const updateStageSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  meta_event: z.enum(CAPI_EVENT_NAMES).nullable().optional(),
+  // z.string() (não enum) para aceitar valores legados já gravados no banco —
+  // novos valores são validados pelo enum em createStageSchema e pela UI
+  meta_event: z.string().nullable().optional(),
   requires_value: z.boolean().optional(),
 });
 export type UpdateStageInput = z.infer<typeof updateStageSchema>;

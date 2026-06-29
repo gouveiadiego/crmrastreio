@@ -43,8 +43,9 @@ export function buildCapiPayload(opts: BuildCapiPayloadOpts): object {
   return {
     event_name: eventName,
     event_time: Math.floor(Date.now() / 1000),
-    // event_id único por (lead × etapa) — evita duplicata se mover e voltar
-    event_id: `lead_${leadId}_stage_${stageId}`,
+    // event_id com janela de 1 hora — dedup contra duplo-clique acidental,
+    // mas permite re-conversão legítima após 1h (sem bloquear venda real)
+    event_id: `lead_${leadId}_stage_${stageId}_${Math.floor(Date.now() / 3_600_000)}`,
     action_source: "system_generated",
     user_data: userData,
     ...(Object.keys(customData).length > 0 ? { custom_data: customData } : {}),
