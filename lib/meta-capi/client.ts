@@ -2,7 +2,7 @@ import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buildCapiPayload } from "./events";
 
-const META_GRAPH_VERSION = "v22.0";
+export const META_GRAPH_VERSION = "v22.0";
 
 interface SendCapiEventOpts {
   orgId: string;

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { triggerAgent } from "@/lib/agent/trigger";
 import { emitAfter } from "@/lib/automations/emit";
-import { createLeadFromWebhook } from "@/lib/leads/actions";
+import { createLeadFromWebhook } from "@/lib/leads/webhook";
 import { getFirstStageSystem, seedDefaultStageSystem } from "@/lib/leads/stages/queries";
 import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";

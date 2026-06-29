@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createStageAction, updateStageAction } from "@/lib/leads/stages/actions";
 import type { FunnelStage } from "@/lib/leads/stages/queries";
+import type { CapiEventName } from "@/lib/meta-capi/events";
 
 const META_EVENTS = [
   { value: "Lead", label: "Lead" },
@@ -46,7 +47,7 @@ export function StageFormDialog({ open, onClose, orgSlug, stage }: Props) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(stage?.name ?? "");
   const [color, setColor] = useState(stage?.color ?? "#6b7280");
-  const [metaEvent, setMetaEvent] = useState<string>(stage?.meta_event ?? "");
+  const [metaEvent, setMetaEvent] = useState<CapiEventName | "">((stage?.meta_event as CapiEventName | null) ?? "");
 
   const isEdit = !!stage;
 
@@ -128,7 +129,7 @@ export function StageFormDialog({ open, onClose, orgSlug, stage }: Props) {
             <select
               id="meta-event"
               value={metaEvent}
-              onChange={(e) => setMetaEvent(e.target.value)}
+              onChange={(e) => setMetaEvent(e.target.value as CapiEventName | "")}
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
             >
               <option value="">Sem evento (só mover)</option>

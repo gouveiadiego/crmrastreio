@@ -39,7 +39,7 @@ export const createStageSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default("#6b7280"),
-  meta_event: z.string().nullable().optional(),
+  meta_event: z.enum(["Lead", "CompleteRegistration", "Schedule", "InitiateCheckout", "Purchase", "LeadLost"]).nullable().optional(),
   requires_value: z.boolean().default(false),
 });
 export type CreateStageInput = z.infer<typeof createStageSchema>;
@@ -52,7 +52,7 @@ export const updateStageSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  meta_event: z.string().nullable().optional(),
+  meta_event: z.enum(["Lead", "CompleteRegistration", "Schedule", "InitiateCheckout", "Purchase", "LeadLost"]).nullable().optional(),
   requires_value: z.boolean().optional(),
 });
 export type UpdateStageInput = z.infer<typeof updateStageSchema>;

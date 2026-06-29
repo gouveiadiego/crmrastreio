@@ -7,7 +7,8 @@ import { requireOrgMember, requireOrgRole } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendCapiEvent } from "@/lib/meta-capi/client";
+import { META_GRAPH_VERSION, sendCapiEvent } from "@/lib/meta-capi/client";
+import { hashPhone } from "@/lib/meta-capi/hash";
 import type { TablesUpdate } from "@/types/supabase";
 import {
   type CreateLeadInput,
@@ -168,32 +169,6 @@ export async function deleteLeadAction(input: DeleteLeadInput): Promise<ActionRe
   return { ok: true };
 }
 
-/**
- * Chamada diretamente pelo router de mensagens (sem sessão de usuário).
- * Usa service client pois roda no after() do webhook.
- * Idempotente: ON CONFLICT (conversation_id) DO NOTHING.
- */
-export async function createLeadFromWebhook(opts: {
-  organizationId: string;
-  conversationId: string;
-  funnel_stage_id: string;
-  phone: string | null;
-  name: string | null;
-}): Promise<void> {
-  const supabase = createServiceClient();
-  const { error } = await supabase.from("leads").insert({
-    organization_id: opts.organizationId,
-    funnel_stage_id: opts.funnel_stage_id,
-    conversation_id: opts.conversationId,
-    phone: opts.phone,
-    name: opts.name,
-  });
-  // 23505 = unique_violation (conversation já tem lead) — ignorar silenciosamente
-  if (error && (error as { code?: string }).code !== "23505") {
-    logError("leads.webhook-create", error);
-  }
-}
-
 // ─── Meta CAPI Integration ────────────────────────────────────────────────────
 
 const saveMetaIntegrationSchema = z.object({
@@ -261,7 +236,6 @@ export async function testMetaIntegrationAction(
     return { ok: false, error: "Configure Pixel ID e Token antes de testar." };
   }
 
-  const META_GRAPH_VERSION = "v22.0";
   const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${integration.pixel_id}/events`;
 
   try {
@@ -275,7 +249,9 @@ export async function testMetaIntegrationAction(
             event_time: Math.floor(Date.now() / 1000),
             event_id: `test_${Date.now()}`,
             action_source: "system_generated",
-            user_data: {},
+            user_data: {
+              ph: [hashPhone("00000000000") ?? ""], // hash dummy para passar validação do Meta
+            },
           },
         ],
         access_token: integration.capi_token,
