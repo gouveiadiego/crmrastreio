@@ -140,6 +140,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/webhooks/") ||
     // Cron jobs (Vercel/Easypanel) — handlers validam via CRON_SECRET bearer.
     pathname.startsWith("/api/cron/") ||
+    // Página pública de QR code para conectar WhatsApp remotamente.
+    pathname.startsWith("/connect/") ||
+    // Rota de API pública do QR code (token validado internamente).
+    pathname.startsWith("/api/channels/qr") ||
     isStaticAsset(pathname);
 
   if (!user && !isPublic) {

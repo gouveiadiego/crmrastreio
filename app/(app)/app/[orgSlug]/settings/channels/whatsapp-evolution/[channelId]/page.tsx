@@ -5,6 +5,7 @@ import { requireOrgRole } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { AgentSelector } from "../../_components/agent-selector";
 import { DisconnectButton } from "./disconnect-button";
+import { GenerateQrButton } from "./generate-qr-button";
 import { ReverifyButton } from "./reverify-button";
 import { TestSendForm } from "./test-send-form";
 
@@ -77,7 +78,10 @@ export default async function ChannelDetailPage({
           <p className="text-sm">
             <strong>Número conectado:</strong> {cfg.connectedNumber ?? "—"}
           </p>
-          <ReverifyButton orgSlug={orgSlug} channelId={channel.id} />
+          <div className="flex flex-wrap gap-2 pt-1">
+            <ReverifyButton orgSlug={orgSlug} channelId={channel.id} />
+            <GenerateQrButton orgSlug={orgSlug} channelId={channel.id} />
+          </div>
         </CardContent>
       </Card>
 

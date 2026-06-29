@@ -17,6 +17,7 @@ import {
 } from "./action-schemas";
 import { evolutionAdapter } from "./adapter";
 import { getJson, postJson } from "./client";
+import { signQrToken } from "./qr-token";
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -219,6 +220,29 @@ export async function disconnectEvolutionChannelAction(
   }
   revalidatePath(`/app/${parsed.data.orgSlug}/settings/channels`);
   return { ok: true };
+}
+
+export async function generateQrLinkAction(input: {
+  orgSlug: string;
+  channelId: string;
+}): Promise<Result<{ url: string }>> {
+  const { org } = await requireOrgRole({
+    orgSlug: input.orgSlug,
+    roles: ["owner", "admin"],
+  });
+  const supabase = await createClient();
+  const { data: channel } = await supabase
+    .from("channels")
+    .select("id")
+    .eq("id", input.channelId)
+    .eq("organization_id", org.id)
+    .eq("type", "whatsapp_evolution")
+    .maybeSingle();
+  if (!channel) return { ok: false, error: "Canal não encontrado." };
+
+  const token = signQrToken(input.channelId);
+  const url = `${appUrl()}/connect/qr/${token}`;
+  return { ok: true, data: { url } };
 }
 
 export async function testSendEvolutionAction(
