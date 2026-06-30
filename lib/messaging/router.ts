@@ -6,6 +6,10 @@ import { createLeadFromWebhook } from "@/lib/leads/webhook";
 import { getFirstStageSystem, seedDefaultStageSystem } from "@/lib/leads/stages/queries";
 import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
+import {
+  fireCapiWhatsappContact,
+  type WhatsappCapiTracking,
+} from "@/lib/meta-capi/whatsapp-events";
 import type { ChannelType, MessagingAdapter, NormalizedEvent } from "./adapter";
 import { getChannelConfigSystem } from "./channel-config";
 import { translateError } from "./errors";
@@ -182,7 +186,7 @@ export async function processInboundMessage(
 
   const { data: existingConv } = await supabase
     .from("conversations")
-    .select("id, organization_id, agent_status, display_name")
+    .select("id, organization_id, agent_status, display_name, capi_contact_fired, tracking")
     .eq("channel_id", channel.id)
     .eq("external_thread_id", externalThread)
     .maybeSingle();
@@ -238,6 +242,9 @@ export async function processInboundMessage(
         external_thread_id: externalThread,
         display_name: incomingDisplayName,
         status: "open",
+        ...(event.tracking
+          ? { tracking: event.tracking as import("@/types/supabase").Json }
+          : {}),
       })
       .select("id, agent_status")
       .single();
@@ -433,6 +440,38 @@ export async function processInboundMessage(
           org: { id: orgId, name: "", slug: "" },
         },
       });
+    }
+  }
+
+  // CAPI Contact: dispara quando lead responde depois do bot/atendente (1x por conversa).
+  if (!isOutbound && existingConv && !existingConv.capi_contact_fired && insertedMsg) {
+    const { count } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId)
+      .eq("direction", "outbound");
+
+    if ((count ?? 0) > 0) {
+      // Seta flag ANTES do after() para evitar race condition com mensagens simultâneas
+      await supabase
+        .from("conversations")
+        .update({ capi_contact_fired: true })
+        .eq("id", conversationId);
+
+      const orgId = channel.organization_id;
+      const convId = conversationId;
+      const phone = normalizePhone(externalThread);
+      const convTracking = (existingConv.tracking ?? null) as WhatsappCapiTracking | null;
+      const convName = existingConv.display_name ?? null;
+      after(() =>
+        fireCapiWhatsappContact({
+          organizationId: orgId,
+          conversationId: convId,
+          phone,
+          name: convName,
+          tracking: convTracking,
+        }),
+      );
     }
   }
 

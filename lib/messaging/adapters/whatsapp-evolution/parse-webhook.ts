@@ -36,6 +36,32 @@ function extractMessageContent(
   return {};
 }
 
+function extractTracking(
+  data: Record<string, unknown>,
+): NonNullable<NormalizedEvent["tracking"]> | undefined {
+  const referral = data.referralInfo as Record<string, unknown> | undefined;
+  const contextInfo = data.contextInfo as Record<string, unknown> | undefined;
+  const adReply = contextInfo?.externalAdReply as Record<string, unknown> | undefined;
+
+  const ctwaClid =
+    (typeof referral?.ctwaClid === "string" ? referral.ctwaClid : null) ??
+    (typeof adReply?.ctwaClid === "string" ? adReply.ctwaClid : null);
+
+  if (!ctwaClid) return undefined;
+
+  const adId =
+    (typeof referral?.adId === "string" ? referral.adId : null) ??
+    (typeof adReply?.adId === "string" ? adReply.adId : null);
+
+  const sourceUrl =
+    (typeof referral?.sourceUrl === "string" ? referral.sourceUrl : null) ??
+    (typeof adReply?.sourceUrl === "string" ? adReply.sourceUrl : null);
+
+  const fbc = `fb.1.${Math.floor(Date.now() / 1000)}.${ctwaClid}`;
+
+  return { ctwa_clid: ctwaClid, fbc, ad_id: adId, source_url: sourceUrl };
+}
+
 function parseMessageUpsert(payload: Payload): NormalizedEvent[] {
   const data = payload.data ?? {};
   const key = data.key as Record<string, unknown> | undefined;
@@ -62,6 +88,8 @@ function parseMessageUpsert(payload: Payload): NormalizedEvent[] {
     ? [{ externalMediaId: externalMessageId, mimeType: extracted.mimeType }]
     : undefined;
 
+  const tracking = extractTracking(data);
+
   return [
     {
       kind: "message",
@@ -74,6 +102,7 @@ function parseMessageUpsert(payload: Payload): NormalizedEvent[] {
         body: extracted.body,
         media,
       },
+      tracking,
       raw: { instanceName: payload.instance, ...payload },
     },
   ];

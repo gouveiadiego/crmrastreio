@@ -57,6 +57,13 @@ export interface NormalizedEvent {
     targetExternalMessageId: string;
   };
 
+  tracking?: {
+    ctwa_clid: string | null;
+    fbc: string | null;
+    ad_id: string | null;
+    source_url: string | null;
+  };
+
   raw: unknown;
 }
 
