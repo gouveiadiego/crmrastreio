@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -1118,6 +1118,65 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_stage_history: {
+        Row: {
+          changed_at: string
+          created_at: string
+          from_stage_id: string | null
+          id: string
+          lead_id: string
+          organization_id: string
+          to_stage_id: string
+        }
+        Insert: {
+          changed_at?: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          lead_id: string
+          organization_id: string
+          to_stage_id: string
+        }
+        Update: {
+          changed_at?: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          lead_id?: string
+          organization_id?: string
+          to_stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
             referencedColumns: ["id"]
           },
         ]
