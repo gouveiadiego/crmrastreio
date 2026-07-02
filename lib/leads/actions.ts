@@ -51,6 +51,14 @@ export async function createLeadAction(
     return { ok: false, error: "Erro ao criar lead. Tente novamente." };
   }
 
+  const { error: historyError } = await supabase.from("lead_stage_history").insert({
+    organization_id: org.id,
+    lead_id: data.id,
+    from_stage_id: null,
+    to_stage_id: parsed.data.funnel_stage_id,
+  });
+  if (historyError) logError("leads.stage-history-create", historyError);
+
   revalidatePath(`/app/${parsed.data.orgSlug}/leads`);
   return { ok: true, data: { id: data.id } };
 }
@@ -77,10 +85,10 @@ export async function moveLeadAction(input: MoveLeadInput): Promise<ActionResult
     return { ok: false, error: "Informe o valor da venda para essa etapa." };
   }
 
-  // Busca lead pra pegar phone/name pro CAPI
+  // Busca lead pra pegar phone/name pro CAPI e a etapa atual pro histórico
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, phone, name")
+    .select("id, phone, name, funnel_stage_id")
     .eq("id", parsed.data.leadId)
     .eq("organization_id", org.id)
     .maybeSingle();
@@ -101,6 +109,14 @@ export async function moveLeadAction(input: MoveLeadInput): Promise<ActionResult
     logError("leads.move", error);
     return { ok: false, error: "Erro ao mover lead. Tente novamente." };
   }
+
+  const { error: historyError } = await supabase.from("lead_stage_history").insert({
+    organization_id: org.id,
+    lead_id: parsed.data.leadId,
+    from_stage_id: lead.funnel_stage_id,
+    to_stage_id: parsed.data.newStageId,
+  });
+  if (historyError) logError("leads.stage-history-move", historyError);
 
   revalidatePath(`/app/${parsed.data.orgSlug}/leads`);
 
