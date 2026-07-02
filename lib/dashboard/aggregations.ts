@@ -41,13 +41,12 @@ export function computeFunnelConversion(
   transitionCounts: Record<string, number>,
 ): FunnelConversionResult[] {
   const ordered = [...stages].sort((a, b) => a.position - b.position);
-  return ordered.map((stage, index) => {
+  let previousCount = 0;
+  return ordered.map((stage) => {
     const count = transitionCounts[stage.id] ?? 0;
-    if (index === 0) {
-      return { stageId: stage.id, name: stage.name, count, conversionPct: null };
-    }
-    const previousCount = transitionCounts[ordered[index - 1]!.id] ?? 0;
-    const conversionPct = previousCount === 0 ? null : Math.round((count / previousCount) * 100);
+    const conversionPct =
+      previousCount === 0 ? null : Math.round((count / previousCount) * 100);
+    previousCount = count;
     return { stageId: stage.id, name: stage.name, count, conversionPct };
   });
 }
