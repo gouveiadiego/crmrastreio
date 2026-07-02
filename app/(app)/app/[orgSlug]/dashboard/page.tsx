@@ -1,18 +1,49 @@
-import { DemoBanner } from "@/components/app/demo-banner";
+import { EmptyState } from "@/components/app/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrgMember } from "@/lib/auth/guards";
-import { chartMock, kpisMock } from "@/lib/mock/dashboard";
+import {
+  getCapiHealth,
+  getFunnelConversion,
+  getLeadsCountComparison,
+  getLeadsCountSeries,
+  getSalesSummary,
+} from "@/lib/dashboard/queries";
+import type { DateRange } from "@/lib/dashboard/aggregations";
 import { createClient } from "@/lib/supabase/server";
-import { DashboardChart } from "./dashboard-chart";
+import { CapiHealthCard } from "./capi-health-card";
+import { FunnelConversionChart } from "./funnel-conversion-chart";
 import { KpiCard } from "./kpi-card";
+import { LeadsOverTimeChart } from "./leads-over-time-chart";
+import { PeriodSelector } from "./period-selector";
 
-type Props = { params: Promise<{ orgSlug: string }> };
+type Props = {
+  params: Promise<{ orgSlug: string }>;
+  searchParams: Promise<{ period?: string }>;
+};
 
 export const metadata = { title: "Início" };
 
-export default async function DashboardPage({ params }: Props) {
+const VALID_PERIODS = ["7", "30", "90"] as const;
+
+function resolvePeriod(raw: string | undefined): (typeof VALID_PERIODS)[number] {
+  return VALID_PERIODS.includes(raw as (typeof VALID_PERIODS)[number])
+    ? (raw as (typeof VALID_PERIODS)[number])
+    : "30";
+}
+
+function periodRange(days: number): DateRange {
+  const to = new Date();
+  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+  return { from, to };
+}
+
+export default async function DashboardPage({ params, searchParams }: Props) {
   const { orgSlug } = await params;
+  const { period: rawPeriod } = await searchParams;
   const { user, org } = await requireOrgMember({ orgSlug });
+
+  const period = resolvePeriod(rawPeriod);
+  const range = periodRange(Number(period));
 
   const supabase = await createClient();
   const { data: profile } = await supabase
@@ -22,14 +53,16 @@ export default async function DashboardPage({ params }: Props) {
     .maybeSingle();
   const displayName = profile?.full_name ?? user.email ?? "";
 
+  const [series, comparison, funnel, sales, capiHealth] = await Promise.all([
+    getLeadsCountSeries(org.id, range),
+    getLeadsCountComparison(org.id, range),
+    getFunnelConversion(org.id, range),
+    getSalesSummary(org.id, range),
+    getCapiHealth(org.id, range),
+  ]);
+
   return (
     <div className="space-y-8">
-      <DemoBanner>
-        KPIs e gráfico abaixo são <strong className="text-foreground/80">dados de exemplo</strong>{" "}
-        (mocks em <code className="font-mono">lib/mock/dashboard.ts</code>). Troque por queries
-        reais quando construir seu produto.
-      </DemoBanner>
-
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1.5">
@@ -39,57 +72,59 @@ export default async function DashboardPage({ params }: Props) {
             Workspace <span className="text-foreground/80">{org.name}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1.5">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 pulse-soft" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-          </span>
-          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-            últimos 30 dias
-          </span>
-        </div>
+        <PeriodSelector current={period} />
       </div>
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpisMock.map((kpi) => (
-          <KpiCard key={kpi.label} kpi={kpi} />
-        ))}
+        <KpiCard
+          label="Leads novos"
+          value={String(comparison.current)}
+          percentChange={comparison.percentChange}
+        />
+        <KpiCard
+          label="Vendas fechadas"
+          value={String(sales.count)}
+          percentChange={null}
+        />
+        <KpiCard
+          label="Valor total vendido"
+          value={sales.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          percentChange={null}
+        />
+        <CapiHealthCard success={capiHealth.success} error={capiHealth.error} />
       </div>
 
-      {/* Chart */}
+      {/* Chart de evolução */}
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 bg-card/40 py-3">
           <CardTitle className="flex items-center gap-2 font-medium text-sm">
-            <span className="label-mono">/ performance</span>
+            <span className="label-mono">/ leads novos</span>
           </CardTitle>
-          <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            real-time
-          </div>
         </CardHeader>
         <CardContent className="p-5">
-          <DashboardChart data={chartMock} />
+          <LeadsOverTimeChart data={series} />
         </CardContent>
       </Card>
 
-      {/* Helper hint */}
-      <div className="rounded-xl border border-dashed border-border bg-card/30 p-5">
-        <div className="flex items-start gap-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 font-mono text-primary text-xs">
-            $
-          </span>
-          <div className="space-y-1.5">
-            <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
-              próximo passo
-            </p>
-            <p className="text-sm leading-relaxed">
-              Troque estes mocks por dados reais. Abra o Claude Code e descreva em português o que
-              você quer construir.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Funil de conversão */}
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b border-border/60 bg-card/40 py-3">
+          <CardTitle className="flex items-center gap-2 font-medium text-sm">
+            <span className="label-mono">/ funil de conversão</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5">
+          {funnel.length === 0 ? (
+            <EmptyState
+              title="Nenhuma etapa configurada"
+              description="Configure as etapas do funil em Configurações → Funil para ver o gráfico de conversão."
+            />
+          ) : (
+            <FunnelConversionChart data={funnel} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
